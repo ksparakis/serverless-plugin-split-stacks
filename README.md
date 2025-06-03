@@ -12,9 +12,30 @@ custom:
     perFunction: false
     perType: true
     perGroupFunction: false
+    perStackName: false
 ```
 
 ## Migration Strategies
+
+### Per Stack Name
+
+This splits resources off into nested stacks based on the `stackName` property in your Lambda function definitions. Functions with the same `stackName` will be deployed into the same stack. This is useful when you want to explicitly control which functions are grouped together.
+
+Example configuration:
+```yaml
+functions:
+  function1:
+    handler: handler.function1
+    stackName: group1
+  function2:
+    handler: handler.function2
+    stackName: group1
+  function3:
+    handler: handler.function3
+    stackName: group2
+```
+
+In this example, `function1` and `function2` will be deployed in the same stack because they share the same `stackName`, while `function3` will be in a different stack.
 
 ### Per Lambda
 
