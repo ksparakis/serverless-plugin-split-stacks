@@ -1,5 +1,5 @@
 {
-  "name": "serverless-plugin-split-stacks",
+  "name": "serverless-plugin-split-stacks-by-group",
   "version": "1.14.0",
   "description": "Split Serverless deployments in to nested CloudFormation stacks",
   "main": "split-stacks.js",
@@ -12,7 +12,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/dougmoscrop/serverless-plugin-split-stacks.git"
+    "url": "git+https://github.com/ksparakis/serverless-plugin-split-stacks.git"
   },
   "keywords": [
     "serverless",
@@ -22,9 +22,9 @@
   "author": "Doug Moscrop <doug.moscrop@gmail.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/dougmoscrop/serverless-plugin-split-stacks/issues"
+    "url": "https://github.com/ksparakis/serverless-plugin-split-stacks/issues"
   },
-  "homepage": "https://github.com/dougmoscrop/serverless-plugin-split-stacks#readme",
+  "homepage": "https://github.com/ksparakis/serverless-plugin-split-stacks#readme",
   "devDependencies": {
     "ava": "^6.1.3",
     "aws-sdk": "^2.1691.0",

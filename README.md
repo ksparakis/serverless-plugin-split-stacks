@@ -1,5 +1,7 @@
 # serverless-plugin-split-stacks
 
+> This is a fork of [dougmoscrop/serverless-plugin-split-stacks](https://github.com/dougmoscrop/serverless-plugin-split-stacks) with added functionality for grouping functions by stackName.
+
 Using this plugin is a bad idea. It means you've allowed your serverless service to grow in to something huge.
 
 This plugin migrates CloudFormation resources in to nested stacks in order to work around the 500 resource limit.
