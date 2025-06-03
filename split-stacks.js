@@ -16,6 +16,12 @@ const logSummary = require('./lib/log-summary');
 
 const utils = require('./lib/utils');
 
+const Custom = require('./lib/migration-strategy/custom');
+const PerType = require('./lib/migration-strategy/per-type');
+const PerFunction = require('./lib/migration-strategy/per-function');
+const PerGroupFunction = require('./lib/migration-strategy/per-group-function');
+const PerStackName = require('./lib/migration-strategy/per-stack-name');
+
 class ServerlessPluginSplitStacks {
 
   constructor(serverless, options) {
@@ -30,6 +36,17 @@ class ServerlessPluginSplitStacks {
       'after:aws:package:finalize:mergeCustomProviderResources': this.split.bind(this),
       'aws:deploy:deploy:uploadArtifacts': this.upload.bind(this)
     };
+
+    if (this.serverless.configSchemaHandler) {
+      this.serverless.configSchemaHandler.defineFunctionProperties('aws', {
+        properties: {
+          stackName: {
+            type: 'string',
+            description: 'The name of the stack this function should be deployed to'
+          }
+        }
+      });
+    }
 
     Object.assign(this,
       utils,
@@ -49,15 +66,21 @@ class ServerlessPluginSplitStacks {
 
     this.config = custom.splitStacks || {};
     this.stacksMap = ServerlessPluginSplitStacks.stacksMap;
-
+    
+    
+    console.log('this.config', this.config);
     // Validate stackName configuration if perStackName is enabled
     if (this.config.perStackName) {
+      console.log('Validating stackName configuration');
       const functions = this.serverless.service.functions || {};
-      const missingStackName = Object.entries(functions).find(([, config]) => !config.stackName);
+      const missingStackNames = Object.entries(functions)
+        .filter(([name, config]) => !config.stackName)
+        .map(([name]) => name);
 
-      if (missingStackName) {
+      if (missingStackNames.length > 0) {
+        const functionList = missingStackNames.map(name => `"${name}"`).join(', ');
         throw new Error(
-          `Function "${missingStackName[0]}" must have a stackName defined when using perStackName strategy. ` +
+          `The following functions are missing stackName: ${functionList}. ` +
           'Please add a stackName to all functions or disable the perStackName strategy.'
         );
       }
@@ -73,7 +96,16 @@ class ServerlessPluginSplitStacks {
     return Promise.resolve()
       .then(() => this.setDeploymentBucketEndpoint())
       .then(() => this.migrateExistingResources())
-      .then(() => this.migrateNewResources())
+      .then(() => {
+        // Store migration strategies for use in logSummary
+        const custom = new Custom(this);
+        const perType = new PerType(this);
+        const perFunction = new PerFunction(this);
+        const perGroupFunction = new PerGroupFunction(this);
+        const perStackName = new PerStackName(this);
+        this.migrationStrategies = [custom, perStackName, perFunction, perType, perGroupFunction];
+        return this.migrateNewResources();
+      })
       .then(() => this.replaceReferences())
       .then(() => this.replaceOutputs())
       .then(() => this.replaceConditions())

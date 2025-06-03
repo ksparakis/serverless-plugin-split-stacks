@@ -2,19 +2,24 @@ service: split-stack-test
 provider:
   name: aws
   runtime: nodejs18.x
+  stage: dev
+  region: us-east-1
+  profile: ${env:AWS_PROFILE, ''}
 
 plugins:
-  - ../..
+  - ../../..
+  - serverless-better-credentials
 
 custom:
   splitStacks:
-    perType: true
+    perType: false
     perFunction: false
+    perStackName: true
   alerts:
     stages:
       - dev
     topics:
-        alarm: "foo"
+      alarm: "foo"
     definitions:
       functionErrors:
         threshold: 5
@@ -37,11 +42,13 @@ functions:
     handler: handlers.b
     stackName: b
     events:
-      - s3: split-stacks-test-${sls:stage}-abc
+      - http:
+          path: /b
+          method: POST
   c:
     handler: handlers.a
     role: customRole
-    stackName: 
+    stackName: c
     events:
       - http:
           path: /
@@ -59,42 +66,6 @@ resources:
         - bar
 
   Resources:
-    SomePermission:
-      Type: AWS::Lambda::Permission
-      Condition: TrueCondition
-      Properties:
-        FunctionName:
-          Ref: BLambdaFunction
-        Action: lambda:InvokeFunction
-        Principal:
-          Fn::Join:
-            - ""
-            - - "s3."
-              - Ref:
-                  AWS::URLSuffix
-        SourceArn:
-          Fn::GetAtt:
-            - ServerlessDeploymentBucket
-            - Arn
-
-    SomeOtherPermission:
-      Type: AWS::Lambda::Permission
-      Condition: FalseCondition
-      Properties:
-        FunctionName:
-          Ref: BLambdaFunction
-        Action: lambda:InvokeFunction
-        Principal:
-          Fn::Join:
-            - ""
-            - - "s3."
-              - Ref:
-                  AWS::URLSuffix
-        SourceArn:
-          Fn::GetAtt:
-            - ServerlessDeploymentBucket
-            - Arn
-
     customRole:
       Type: AWS::IAM::Role
       Properties:
