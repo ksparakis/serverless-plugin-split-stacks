@@ -1,7 +1,7 @@
 {
   "name": "serverless-plugin-split-stacks-by-group",
-  "version": "1.14.0",
-  "description": "Split Serverless deployments in to nested CloudFormation stacks",
+  "version": "1.0.0",
+  "description": "Split Serverless deployments in to nested CloudFormation stacks by stack name",
   "main": "split-stacks.js",
   "scripts": {
     "coverage": "nyc --all npm test",
@@ -19,7 +19,7 @@
     "plugin",
     "deployment"
   ],
-  "author": "Doug Moscrop <doug.moscrop@gmail.com>",
+  "author": "Konstantinos Sparakis",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/ksparakis/serverless-plugin-split-stacks/issues"
