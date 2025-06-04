@@ -67,23 +67,6 @@ class ServerlessPluginSplitStacks {
     this.config = custom.splitStacks || {};
     this.stacksMap = ServerlessPluginSplitStacks.stacksMap;
 
-
-    // Validate stackName configuration if perStackName is enabled
-    if (this.config.perStackName) {
-      console.log('Validating stackName configuration');
-      const functions = this.serverless.service.functions || {};
-      const missingStackNames = Object.entries(functions)
-        .filter(([name, config]) => !config.stackName)
-        .map(([name]) => name);
-
-      if (missingStackNames.length > 0) {
-        const functionList = missingStackNames.map(name => `"${name}"`).join(', ');
-        throw new Error(
-          `The following functions are missing stackName: ${functionList}. ` +
-          'Please add a stackName to all functions or disable the perStackName strategy.'
-        );
-      }
-    }
   }
 
   split() {
