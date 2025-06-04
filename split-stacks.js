@@ -66,9 +66,8 @@ class ServerlessPluginSplitStacks {
 
     this.config = custom.splitStacks || {};
     this.stacksMap = ServerlessPluginSplitStacks.stacksMap;
-    
-    
-    console.log('this.config', this.config);
+
+
     // Validate stackName configuration if perStackName is enabled
     if (this.config.perStackName) {
       console.log('Validating stackName configuration');

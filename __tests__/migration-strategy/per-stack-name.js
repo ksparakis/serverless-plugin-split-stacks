@@ -1,158 +1,137 @@
 'use strict';
 
+const sinon = require('sinon');
 const test = require('ava');
 const PerStackNameStrategy = require('../../lib/migration-strategy/per-stack-name');
 
-test('plugin constructor throws error when perStackName enabled and function missing stackName', t => {
+test.beforeEach(t => {
+    const apiGatewayPlugin = {
+        constructor: { name: 'AwsCompileApigEvents' },
+        validated: { events: [] },
+        getResourceName: sinon.stub().returnsArg(0)
+    };
+
     const plugin = {
-        config: { perStackName: true },
+        config: {},
         serverless: {
-            service: {
-                functions: {
-                    func1: {}
-                }
+            config: { servicePath: __dirname },
+            pluginManager: { plugins: [apiGatewayPlugin] },
+            service: { functions: {} }
+        },
+        provider: {
+            naming: {
+                getNormalizedFunctionName: sinon.stub().returnsArg(0),
+                getMethodLogicalId: sinon.stub().callsFake((name, method) => name + method),
+                getResourceLogicalId: sinon.stub().returnsArg(0)
             }
         }
     };
-    const strategy = new PerStackNameStrategy(plugin);
+    t.context = { plugin };
+});
+
+test('can be disabled', t => {
+    t.context.plugin.config.perStackName = false;
+    t.context.plugin.serverless.service.functions = { func1: { stackName: 'group1' } };
+    const strategy = new PerStackNameStrategy(t.context.plugin);
+    t.falsy(strategy.isStrategyActive());
+});
+
+test('initializes if enabled', t => {
+    t.context.plugin.config.perStackName = true;
+    t.context.plugin.serverless.service.functions = { func1: { stackName: 'group1' } };
+    const strategy = new PerStackNameStrategy(t.context.plugin);
+    t.truthy(strategy.isStrategyActive());
+});
+
+test('plugin constructor throws error when perStackName enabled and function missing stackName', t => {
+    t.context.plugin.config.perStackName = true;
+    t.context.plugin.serverless.service.functions = { func1: {} };
+    const strategy = new PerStackNameStrategy(t.context.plugin);
     t.throws(() => {
         strategy.getDestination({ Type: 'AWS::Lambda::Function' }, 'func1LambdaFunction');
     }, { message: 'Function func1 must have a stackName defined when using perStackName strategy' });
 });
 
 test('plugin constructor does not throw when perStackName disabled', t => {
-    const plugin = {
-        config: { perStackName: false },
-        serverless: {
-            service: {
-                functions: {
-                    func1: {}
-                }
-            }
-        }
-    };
-
+    t.context.plugin.config.perStackName = false;
+    t.context.plugin.serverless.service.functions = { func1: {} };
     t.notThrows(() => {
-        new PerStackNameStrategy(plugin);
+        new PerStackNameStrategy(t.context.plugin);
     });
 });
 
 test('strategy throws error for functions without stackName', t => {
-    const plugin = {
-        config: { perStackName: true },
-        serverless: {
-            service: {
-                functions: {
-                    func1: { stackName: 'group1' },
-                    func2: {}
-                }
-            }
-        }
+    t.context.plugin.config.perStackName = true;
+    t.context.plugin.serverless.service.functions = {
+        func1: { stackName: 'group1' },
+        func2: {}
     };
-
-    const strategy = new PerStackNameStrategy(plugin);
+    const strategy = new PerStackNameStrategy(t.context.plugin);
     t.throws(() => {
         strategy.getDestination({ Type: 'AWS::Lambda::Function' }, 'func2LambdaFunction');
     }, { message: 'Function func2 must have a stackName defined when using perStackName strategy' });
 });
 
-test('can be disabled', t => {
-    const plugin = {
-        config: { perStackName: false },
-        serverless: {
-            service: {
-                functions: {
-                    func1: { stackName: 'group1' }
-                }
-            }
-        }
-    };
-
-    const strategy = new PerStackNameStrategy(plugin);
-    t.falsy(strategy.isStrategyActive());
-});
-
-test('initializes if enabled', t => {
-    const plugin = {
-        config: { perStackName: true },
-        serverless: {
-            service: {
-                functions: {
-                    func1: { stackName: 'group1' }
-                }
-            }
-        }
-    };
-
-    const strategy = new PerStackNameStrategy(plugin);
-    t.truthy(strategy.isStrategyActive());
-});
-
 test('does not migrate resources if disabled', t => {
-    const plugin = {
-        config: { perStackName: false },
-        serverless: {
-            service: {
-                functions: {
-                    func1: { stackName: 'group1' }
-                }
-            }
-        }
-    };
-
-    const strategy = new PerStackNameStrategy(plugin);
+    t.context.plugin.config.perStackName = false;
+    t.context.plugin.serverless.service.functions = { func1: { stackName: 'group1' } };
+    const strategy = new PerStackNameStrategy(t.context.plugin);
     const result = strategy.getDestination({ Type: 'AWS::Lambda::Function' }, 'func1LambdaFunction');
     t.falsy(result);
 });
 
 test('does not migrate non-lambda resources', t => {
-    const plugin = {
-        config: { perStackName: true },
-        serverless: {
-            service: {
-                functions: {
-                    func1: { stackName: 'group1' }
-                }
-            }
-        }
-    };
-
-    const strategy = new PerStackNameStrategy(plugin);
+    t.context.plugin.config.perStackName = true;
+    t.context.plugin.serverless.service.functions = { func1: { stackName: 'group1' } };
+    const strategy = new PerStackNameStrategy(t.context.plugin);
     const result = strategy.getDestination({ Type: 'AWS::S3::Bucket' }, 'MyBucket');
     t.falsy(result);
 });
 
 test('migrates functions to correct stack based on stackName', t => {
-    const plugin = {
-        config: { perStackName: true },
-        serverless: {
-            service: {
-                functions: {
-                    func1: { stackName: 'group1' },
-                    func2: { stackName: 'group2' }
-                }
-            }
-        }
+    t.context.plugin.config.perStackName = true;
+    t.context.plugin.serverless.service.functions = {
+        func1: { stackName: 'group1' },
+        func2: { stackName: 'group2' }
     };
-
-    const strategy = new PerStackNameStrategy(plugin);
-
-    // Test first function
+    const strategy = new PerStackNameStrategy(t.context.plugin);
     const migration1 = strategy.getDestination({ Type: 'AWS::Lambda::Function' }, 'func1LambdaFunction');
     t.truthy(migration1);
-    t.is(migration1.destination, 'group1');
+    t.is(migration1.destination, strategy.getNestedStackName('group1'));
     t.is(migration1.reason, 'Grouped by stackName: group1');
-
-    // Test second function
     const migration2 = strategy.getDestination({ Type: 'AWS::Lambda::Function' }, 'func2LambdaFunction');
     t.truthy(migration2);
-    t.is(migration2.destination, 'group2');
+    t.is(migration2.destination, strategy.getNestedStackName('group2'));
     t.is(migration2.reason, 'Grouped by stackName: group2');
-
-    // Test that both functions are in the same stack group
     const stackGroups = strategy.getStackGroups();
     t.truthy(stackGroups['group1']);
     t.truthy(stackGroups['group2']);
     t.deepEqual(stackGroups['group1'].resources, ['func1LambdaFunction']);
     t.deepEqual(stackGroups['group2'].resources, ['func2LambdaFunction']);
+});
+
+test('migrates all related resources to the same stack', t => {
+    t.context.plugin.config.perStackName = true;
+    t.context.plugin.serverless.service.functions = { func1: { stackName: 'group1' } };
+    const strategy = new PerStackNameStrategy(t.context.plugin);
+    const functionMigration = strategy.getDestination({ Type: 'AWS::Lambda::Function' }, 'func1LambdaFunction');
+    t.truthy(functionMigration);
+    t.is(functionMigration.destination, strategy.getNestedStackName('group1'));
+    const permissionMigration = strategy.getDestination({ Type: 'AWS::Lambda::Permission' }, 'func1LambdaPermissionApiGateway');
+    t.truthy(permissionMigration);
+    t.is(permissionMigration.destination, strategy.getNestedStackName('group1'));
+    const versionMigration = strategy.getDestination({ Type: 'AWS::Lambda::Version' }, 'func1LambdaVersionXYZ');
+    t.truthy(versionMigration);
+    t.is(versionMigration.destination, strategy.getNestedStackName('group1'));
+    const logGroupMigration = strategy.getDestination({ Type: 'AWS::Logs::LogGroup' }, 'func1LogGroup');
+    t.truthy(logGroupMigration);
+    t.is(logGroupMigration.destination, strategy.getNestedStackName('group1'));
+    const stackGroups = strategy.getStackGroups();
+    t.truthy(stackGroups['group1']);
+    t.deepEqual(stackGroups['group1'].resources.sort(), [
+        'func1LambdaFunction',
+        'func1LambdaPermissionApiGateway',
+        'func1LambdaVersionXYZ',
+        'func1LogGroup'
+    ].sort());
 }); 

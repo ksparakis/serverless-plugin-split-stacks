@@ -5,6 +5,7 @@ provider:
   stage: dev
   region: us-east-1
   profile: ${env:AWS_PROFILE, ''}
+  role: customRole
 
 plugins:
   - ../../..
@@ -32,26 +33,24 @@ custom:
 functions:
   a:
     handler: handlers.a
-    role: customRole
-    stackName: a
+    stackName: aOK
     events:
       - http:
-          path: /
+          path: /a
           method: GET
   b:
     handler: handlers.b
-    stackName: b
+    stackName: bOK
     events:
       - http:
           path: /b
           method: POST
   c:
-    handler: handlers.a
-    role: customRole
-    stackName: c
+    handler: handlers.c
+    stackName: cOK
     events:
       - http:
-          path: /
+          path: /c
           method: PUT
 
 resources:
