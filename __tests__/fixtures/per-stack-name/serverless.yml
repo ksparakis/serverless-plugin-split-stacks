@@ -1,4 +1,4 @@
-service: split-stack-test
+service: split-stack-test-4
 provider:
   name: aws
   runtime: nodejs18.x
@@ -16,6 +16,7 @@ custom:
     perType: false
     perFunction: false
     perStackName: true
+  uploadsRoute: /uploads
   alerts:
     stages:
       - dev
@@ -68,7 +69,7 @@ resources:
     customRole:
       Type: AWS::IAM::Role
       Properties:
-        RoleName: role1
+        RoleName: ${self:service}-${self:provider.stage}
         Path: "/"
         AssumeRolePolicyDocument:
           Version: "2012-10-17"
