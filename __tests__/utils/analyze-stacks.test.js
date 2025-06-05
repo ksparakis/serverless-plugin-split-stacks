@@ -3,7 +3,6 @@
 const test = require('ava');
 const sinon = require('sinon');
 const fs = require('fs');
-const path = require('path');
 const analyzeStacks = require('../../lib/analyze-stacks');
 
 test.beforeEach(t => {
