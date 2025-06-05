@@ -26,22 +26,22 @@
   },
   "homepage": "https://github.com/ksparakis/serverless-plugin-split-stacks#readme",
   "devDependencies": {
-    "ava": "^6.1.3",
-    "aws-sdk": "^2.1691.0",
+    "ava": "^6.3.0",
+    "aws-sdk": "^2.1692.0",
     "eslint": "^8.26.0",
     "nyc": "^17.1.0",
     "proxyquire": "^2.1.3",
-    "serverless": "^3",
+    "serverless": "3.40.0",
     "serverless-better-credentials": "^2.0.1",
-    "sinon": "^19.0.2",
-    "zx": "^8.1.9"
+    "sinon": "^19.0.5",
+    "zx": "^8.5.5"
   },
   "dependencies": {
-    "aws-info": "^1.2.0",
+    "aws-info": "^1.3.0",
     "lodash": "^4.17.21",
-    "proxy-agent": "^6.3.1",
-    "semver": "^7.3.5",
-    "throat": "^6.0.1"
+    "proxy-agent": "^6.5.0",
+    "semver": "^7.7.2",
+    "throat": "^6.0.2"
   },
   "peerDependencies": {
     "serverless": "1 || 2 || 3 || 4"
