@@ -13,6 +13,7 @@ const mergeStackResources = require('./lib/merge-stack-resources');
 const sequenceStacks = require('./lib/sequence-stacks');
 const writeNestedStacks = require('./lib/write-nested-stacks');
 const logSummary = require('./lib/log-summary');
+const analyzeStacks = require('./lib/analyze-stacks');
 
 const utils = require('./lib/utils');
 
@@ -20,7 +21,7 @@ const Custom = require('./lib/migration-strategy/custom');
 const PerType = require('./lib/migration-strategy/per-type');
 const PerFunction = require('./lib/migration-strategy/per-function');
 const PerGroupFunction = require('./lib/migration-strategy/per-group-function');
-const PerStackName = require('./lib/migration-strategy/per-stack-name');
+const ByCustomGroup = require('./lib/migration-strategy/per-stack-name');
 
 class ServerlessPluginSplitStacks {
 
@@ -59,12 +60,19 @@ class ServerlessPluginSplitStacks {
       { mergeStackResources },
       { sequenceStacks },
       { writeNestedStacks },
-      { logSummary }
+      { logSummary },
+      { analyzeStacks }
     );
 
     const custom = this.serverless.service.custom || {};
 
-    this.config = custom.splitStacks || {};
+    this.config = Object.assign({
+      plan: false,
+      detailed: true,
+      verbose: false,
+      analyze: false,
+      perCustomGroup: false
+    }, custom.splitStacks || {});
     this.stacksMap = ServerlessPluginSplitStacks.stacksMap;
 
   }
@@ -80,12 +88,15 @@ class ServerlessPluginSplitStacks {
       .then(() => this.migrateExistingResources())
       .then(() => {
         // Store migration strategies for use in logSummary
+        // Order matters - strategies are checked in sequence
         const custom = new Custom(this);
-        const perType = new PerType(this);
+        const byCustomGroup = new ByCustomGroup(this);
         const perFunction = new PerFunction(this);
+        const perType = new PerType(this);
         const perGroupFunction = new PerGroupFunction(this);
-        const perStackName = new PerStackName(this);
-        this.migrationStrategies = [custom, perStackName, perFunction, perType, perGroupFunction];
+
+        // Custom strategy first, then byCustomGroup, then others
+        this.migrationStrategies = [custom, byCustomGroup, perFunction, perType, perGroupFunction];
         return this.migrateNewResources();
       })
       .then(() => this.replaceReferences())
@@ -94,7 +105,14 @@ class ServerlessPluginSplitStacks {
       .then(() => this.mergeStackResources())
       .then(() => this.sequenceStacks())
       .then(() => this.writeNestedStacks())
-      .then(() => this.logSummary());
+      .then(() => this.logSummary())
+      .then(() => this.analyzeStacks())
+      .then(() => {
+        if (this.config.plan) {
+          this.log('[serverless-plugin-split-stacks-by-group]: Plan mode enabled - exiting without deployment');
+          process.exit(0);
+        }
+      });
   }
 
   upload() {

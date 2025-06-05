@@ -1,8 +1,6 @@
-# serverless-plugin-split-stacks
+# serverless-plugin-split-stacks-by-group
 
-> This is a fork of [dougmoscrop/serverless-plugin-split-stacks](https://github.com/dougmoscrop/serverless-plugin-split-stacks) with added functionality for grouping functions by stackName.
-
-Using this plugin is a bad idea. It means you've allowed your serverless service to grow in to something huge.
+> This is a fork and imporvment of [dougmoscrop/serverless-plugin-split-stacks](https://github.com/dougmoscrop/serverless-plugin-split-stacks) decided to add some features and improvments as well as maintain a CI for this. Feel free to contribute.
 
 This plugin migrates CloudFormation resources in to nested stacks in order to work around the 500 resource limit.
 
@@ -14,17 +12,25 @@ custom:
     perFunction: false
     perType: true
     perGroupFunction: false
-    perStackName: false
+    perCustomGroup: false  # Default: false. Enables the ByCustomGroup strategy when true
+    detailed: true   # Show detailed resource information (default: true)
+    verbose: false   # Show detailed reference information (default: false)
+    plan: false      # Print summary and exit without deploying (default: false)
+    analyze: false   # Generate detailed stack analysis file (default: false)
 ```
 
 ## Migration Strategies
 
-### Per Stack Name
+### By Custom Group (perCustomGroup)
 
 This splits resources off into nested stacks based on the `stackName` property in your Lambda function definitions. Functions with the same `stackName` will be deployed into the same stack. This is useful when you want to explicitly control which functions are grouped together.
 
 Example configuration:
 ```yaml
+custom:
+  splitStacks:
+    perCustomGroup: true  # Enable the ByCustomGroup strategy
+
 functions:
   function1:
     handler: handler.function1
@@ -127,3 +133,101 @@ custom:
   splitStacks:
     proxyAgent: true
 ```
+
+## Analysis Feature
+
+When `analyze: true` is set, the plugin generates a comprehensive analysis of your stack structure in `.serverless/stack-analysis-{timestamp}.json` and `.serverless/stack-analysis-{timestamp}-summary.md`. This analysis includes:
+
+- Complete resource inventory for each stack
+- Cross-stack reference mapping
+- Dependency hierarchy visualization
+- Potential circular dependency warnings
+- Optimization suggestions (underutilized stacks, stacks approaching limits)
+
+Example analysis output structure:
+```json
+{
+  "summary": {
+    "totalStacks": 5,
+    "totalResources": 245,
+    "potentialIssues": [{
+      "type": "circular_dependency_risk",
+      "severity": "warning",
+      "description": "Mutual references between stacks"
+    }]
+  },
+  "stacks": {
+    "stack-user-service": {
+      "resourceCount": 67,
+      "resources": { /* detailed resource info */ }
+    }
+  },
+  "dependencyGraph": { /* stack dependency levels */ }
+}
+```
+
+This analysis file can be used with LLMs or other tools to quickly identify and resolve circular dependencies or optimization opportunities.
+
+## Development Tips
+
+### Testing the Plugin Locally
+
+To test changes to the plugin in your serverless project:
+
+1. Build the plugin:
+```bash
+cd /path/to/serverless-plugin-split-stacks-by-group
+npm pack
+```
+
+2. Install the local version in your project:
+```bash
+cd /path/to/your/serverless/project
+npm remove serverless-plugin-split-stacks-by-group
+npm install /path/to/serverless-plugin-split-stacks-by-group/serverless-plugin-split-stacks-by-group-1.1.0.tgz
+```
+
+3. Deploy your serverless project:
+```bash
+npx sls deploy
+```
+
+### Best Practices
+
+1. Always test changes in a development environment first
+2. Use the `plan` option to preview changes without deploying:
+```yaml
+custom:
+  splitStacks:
+    plan: true
+```
+
+3. Enable the analysis feature to understand your stack structure:
+```yaml
+custom:
+  splitStacks:
+    analyze: true
+```
+
+4. Use the `verbose` option during development for detailed reference information:
+```yaml
+custom:
+  splitStacks:
+    verbose: true
+```
+
+### Debugging
+
+If you encounter issues:
+
+1. Check the generated stack analysis files in `.serverless/stack-analysis-{timestamp}.json`
+2. Enable verbose logging to see detailed reference information
+3. Use the plan mode to preview changes before deployment
+4. Review the CloudFormation console for detailed error messages
+
+
+# TODOs
+
+1. If a group grows bigger than 500 resources, create a new nested stack for the custom group
+2. environment variables for some of the options to be enabled
+3. better ci/automation
